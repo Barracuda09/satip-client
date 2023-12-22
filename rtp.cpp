@@ -28,6 +28,9 @@
 #include <poll.h>
 #include <errno.h>
 
+#include <iostream>
+#include <fstream>
+
 #include "rtp.h"
 #include "log.h"
 
@@ -36,13 +39,14 @@
 #define PORT_BASE 45000
 #define PORT_RANGE 2000
 
-satipRTP::satipRTP(int vtuner_fd, int tcp_data)
-						:m_rtp_port(-1),
+satipRTP::satipRTP(int vtuner_fd, bool tcp_data, int rtp_net_buffer_size_mb) :
+						m_rtp_port(-1),
 						m_rtp_socket(-1),
 						m_rtcp_port(-1),
 						m_rtcp_socket(-1),
 						m_thread(0),
 						m_running(false),
+						m_rtp_net_buffer_size_mb(rtp_net_buffer_size_mb),
 						m_hasLock(false),
 						m_signalStrength(0),
 						m_signalQuality(0),
@@ -114,7 +118,7 @@ int satipRTP::openRTP()
 			continue;
 		}
 
-		int len = 4 * 1024 * 1024;
+		int len = m_rtp_net_buffer_size_mb * 1024 * 1024;
 		if (setsockopt(rtp_sock, SOL_SOCKET, SO_RCVBUFFORCE, &len, sizeof(len)))
 			WARN(MSG_MAIN, "unable to set UDP buffer (force) size to %d\n", len);
 
@@ -171,6 +175,7 @@ void satipRTP::parseRtcpAppPayload(char *buffer)
 	char *strp = strstr(buffer, ";tuner=");
 	if (strp)
 	{
+		static int rateLimit = 0;
 		int level, lock, quality;
 		strp = strstr(strp, ",");
 		sscanf(strp, ",%d,%d,%d,%*s", &level, &lock, &quality);
@@ -178,8 +183,11 @@ void satipRTP::parseRtcpAppPayload(char *buffer)
 		m_signalStrength = (level >= 0) ? (level * 65535 / 255) : 0;
 		m_hasLock = !!lock;
 		m_signalQuality = (m_hasLock && (quality >= 0)) ? (quality * 65535 / 15) : 0;
-
-//		DEBUG(MSG_DATA, "RTCP: signalStrength : %d, hasLock : %d, signalQuality : %d\n", m_signalStrength, m_hasLock, m_signalQuality);
+		++rateLimit;
+		if (rateLimit > 3) {
+			rateLimit = 0;
+			DEBUG(MSG_MAIN, "RTCP: signalStrength : %d, hasLock : %d, signalQuality : %d\n", m_signalStrength, m_hasLock, m_signalQuality);
+		}
 	}
 }
 
@@ -253,7 +261,7 @@ int satipRTP::Write(int fd, unsigned char *buffer, int size)
 
 		if (write_res == -1)
 		{
-			if( errno == EINTR )
+			if (errno == EINTR)
 			{
 				DEBUG(MSG_MAIN, "WRITE : raise EINTR..continue.\n");
 				continue;
@@ -276,7 +284,7 @@ ssize_t satipRTP::Read(int fd, unsigned char *buffer, int size)
 		recv_res = recv(fd, buffer, size, 0);
 		if (recv_res == -1)
 		{
-			if( errno == EINTR )
+			if (errno == EINTR)
 			{
 				DEBUG(MSG_MAIN, "READ : raise EINTR..continue.\n");
 				continue;
@@ -316,21 +324,20 @@ void* satipRTP::rtpDump()
 		pollfds[0].revents = 0;
 		pollfds[1].revents = 0;
 
-//		poll(pollfds, 2, -1);
 		poll(pollfds, 2, 1000);
 
-		if ( pollfds[0].revents & POLLIN )
+		if (pollfds[0].revents & POLLIN)
 		{
 			rx_bytes = Read(pollfds[0].fd, rx_data, sizeof(rx_data));
 
-			if ( (rx_bytes > 12) && (rx_data[12] == 0x47) ) // remove RTP encapsulation 12bytes.
+			if ((rx_bytes > 12) && (rx_data[12] == 0x47)) // remove RTP encapsulation 12bytes.
 			{
 				wr_bytes= Write(m_vtuner_fd ,&rx_data[12], rx_bytes-12);
 				DEBUG(MSG_DATA, "RTP DATA : read %d bytes, write %d bytes\n", rx_bytes, wr_bytes);
 			}
 		}
 
-		if ( pollfds[1].revents & POLLIN )
+		if (pollfds[1].revents & POLLIN)
 		{
 			rx_bytes = recv(pollfds[1].fd, rx_data, sizeof(rx_data), 0);
 			if (rx_bytes > 0)
@@ -345,26 +352,23 @@ void* satipRTP::rtpDump()
 	return 0;
 }
 
-int satipRTP::rtpTcpData(unsigned char *data, int size)
+void satipRTP::rtpTcpData(unsigned char *data, int size)
 {
-        if (size <= 4 + 12)
-        {
-                return 0;
-        }
+	if (size <= 4 + 12)
+	{
+		return;
+	}
 
-        if (data[1] == 0)
-        {
-                int wr = Write(m_vtuner_fd, data + 4 + 12, size - 4 - 12);
-                DEBUG(MSG_DATA, "RTP TCP DATA : read %d bytes, write %d bytes\n", size - 4, wr);
-        }
-        else if (data[1] == 1)
-        {
-                DEBUG(MSG_DATA,"RTCP TCP DATA : read %d bytes\n", size - 4);
-                rtcpData(data + 4, size - 4);
-
-        }
-
-        return 0;
+	if (data[1] == 0)
+	{
+		const int wr = Write(m_vtuner_fd, data + 4 + 12, size - 4 - 12);
+		DEBUG(MSG_DATA, "RTP TCP DATA : read %d bytes, write %d bytes\n", size - 4, wr);
+	}
+	else if (data[1] == 1)
+	{
+		rtcpData(data + 4, size - 4);
+		DEBUG(MSG_DATA, "RTCP TCP DATA : read %d bytes\n", size - 4);
+	}
 }
 
 void *satipRTP::thread_wrapper(void *ptr)

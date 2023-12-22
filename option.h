@@ -32,12 +32,14 @@ public:
 	std::string m_vtuner_type;
 	std::string m_ipaddr;
 	bool m_tcpdata;
+	int m_tcpdata_timeout;
+	int m_rtp_net_buffer_size_mb;
 	int m_fe_type;
 	int m_fe_number;
 	bool m_force_plts;
-        std::string m_port;
+	std::string m_port;
 
-	vtunerOpt():m_tcpdata(0),m_fe_type(-1),m_fe_number(0),m_force_plts(false)
+	vtunerOpt():m_tcpdata(false),m_tcpdata_timeout(6000),m_rtp_net_buffer_size_mb(6),m_fe_type(-1),m_fe_number(0),m_force_plts(false)
 	{
 	}
 

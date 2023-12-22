@@ -75,6 +75,8 @@ public:
 	virtual ~satipConfig();
 
 	bool isTcpData() {return m_settings->m_tcpdata;}
+	int getTcpDataTimeout() {return m_settings->m_tcpdata_timeout;}
+	int getRtpNetBufferSizeMB() {return m_settings->m_rtp_net_buffer_size_mb;}
 	int getFeType() {return m_fe_type;}
 
 	/* vtuner property */
@@ -149,13 +151,14 @@ public:
 	std::string getPlayData();
 
 private:
+	static constexpr int M_NO_STREAM_ID_FILTER = NO_STREAM_ID_FILTER;
 	int m_fe_type;
 
 	typedef enum
 	{
 		PID_ADD = 0,
 		PID_DELETE,
-		PID_VAILD,
+		PID_VALID,
 		PID_INVALID
 	}t_pid_elem_status;
 	

@@ -41,13 +41,11 @@ satipSession::satipSession(const char* host,
 							m_session_thread(0),
 							m_running(false)
 {
-	int rtp_port;
-
 	DEBUG(MSG_MAIN,"Create SESSION.(host : %s, rtsp_port : %s, fe_type : %d\n",
 		host, rtsp_port, fe_type);
 	m_satip_config = new satipConfig(fe_type, settings);
 	m_satip_vtuner = new satipVtuner(m_satip_config);
-	m_satip_rtp  = new satipRTP(m_satip_vtuner->getVtunerFd(), settings->m_tcpdata);
+	m_satip_rtp  = new satipRTP(m_satip_vtuner->getVtunerFd(), settings->m_tcpdata, settings->m_rtp_net_buffer_size_mb);
 
 	m_satip_vtuner->setSatipRTP(m_satip_rtp); // for receive RTCP data
 

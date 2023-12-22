@@ -34,27 +34,27 @@
 #define DVB_VER_ATLEAST(maj, min) \
  (DVB_VER_INT(DVB_API_VERSION,  DVB_API_VERSION_MINOR) >= DVB_VER_INT(maj, min))
 
-#define MSG_SET_FRONTEND			1
-#define MSG_GET_FRONTEND			2
-#define MSG_READ_STATUS				3
-#define MSG_READ_BER				4
-#define MSG_READ_SIGNAL_STRENGTH	5
-#define MSG_READ_SNR				6
-#define MSG_READ_UCBLOCKS			7
-#define MSG_SET_TONE				8
-#define MSG_SET_VOLTAGE				9
-#define MSG_ENABLE_HIGH_VOLTAGE		10
-#define MSG_SEND_DISEQC_MSG			11
-#define MSG_SEND_DISEQC_BURST		13
-#define MSG_PIDLIST					14
-#define MSG_TYPE_CHANGED			15
-#define MSG_SET_PROPERTY			16
-#define MSG_GET_PROPERTY			17
-#define MSG_GET_TUNE_SETTINGS		18
+#define MSG_SET_FRONTEND         1
+#define MSG_GET_FRONTEND         2
+#define MSG_READ_STATUS          3
+#define MSG_READ_BER             4
+#define MSG_READ_SIGNAL_STRENGTH 5
+#define MSG_READ_SNR             6
+#define MSG_READ_UCBLOCKS        7
+#define MSG_SET_TONE             8
+#define MSG_SET_VOLTAGE          9
+#define MSG_ENABLE_HIGH_VOLTAGE 10
+#define MSG_SEND_DISEQC_MSG     11
+#define MSG_SEND_DISEQC_BURST   13
+#define MSG_PIDLIST             14
+#define MSG_TYPE_CHANGED        15
+#define MSG_SET_PROPERTY        16
+#define MSG_GET_PROPERTY        17
+#define MSG_GET_TUNE_SETTINGS   18
 
-#define MSG_NULL				1024
-#define MSG_DISCOVER			1025
-#define MSG_UPDATE       		1026
+#define MSG_NULL          1024
+#define MSG_DISCOVER      1025
+#define MSG_UPDATE        1026
 
 typedef unsigned int   u32;
 typedef unsigned short u16;

@@ -27,11 +27,11 @@
 __thread char msg[MAX_MSGSIZE];
 
 void write_message(const unsigned int mtype, const int level, const char* fmt, ... ) {
-	if( !(mtype & dbg_mask ) )
+	if (!(mtype & dbg_mask)) {
 		return;
+	}
 
-	if( level <= dbg_level ) {
-
+	if (level <= dbg_level) {
 		char tn[MAX_MSGSIZE];
 		va_list ap;
 		va_start(ap, fmt);
@@ -40,7 +40,7 @@ void write_message(const unsigned int mtype, const int level, const char* fmt, .
 		strncat(msg, tn, sizeof(msg)-1);
 		msg[sizeof(tn)-1] = '\0';
 
-		if(use_syslog) {
+		if (use_syslog) {
 			int priority;
 			switch(level) {
 				case 1: priority=LOG_ERR; break;

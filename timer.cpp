@@ -48,24 +48,22 @@ void satipTimer::dump()
 
 timer_elem* satipTimer::create(void (*handler)(void*), void* params, const char *description)
 {
-	DEBUG(MSG_MAIN, "satipTimer::create timer %s \n", description);
+	DEBUG(MSG_MAIN, "timer create %s \n", description);
 	dump();	
 
 	timer_elem *timer = new timer_elem(handler, params, description);
 	m_timer_list.push_back(timer);
 	dump();
-	DEBUG(MSG_MAIN, "satipTimer::create end.\n");
 	return timer;
 }
 
 void satipTimer::remove(timer_elem* timer)
 {
-	DEBUG(MSG_MAIN, "satipTimer::remove %s\n", timer->getDescription());
+	DEBUG(MSG_MAIN, "timer remove %s\n", timer->getDescription());
 	dump();
 	m_timer_list.remove(timer);
 	delete timer;
 	dump();
-	DEBUG(MSG_MAIN, "satipTimer::remove end.\n");
 }
 
 void satipTimer::callNextTimer()
@@ -79,7 +77,7 @@ void satipTimer::callNextTimer()
 		{
 			if ((cur_ts.tv_sec > (*it)->getTimeSpecSec()) || ((cur_ts.tv_sec == (*it)->getTimeSpecSec()) && cur_ts.tv_nsec > (*it)->getTimeSpecNsec()))
 			{
-				DEBUG(MSG_MAIN, "satipTimer::callNextTimer run %s\n", (*it)->getDescription());
+				DEBUG(MSG_MAIN, "timer run %s\n", (*it)->getDescription());
 				(*it)->call();
 			}
 		}

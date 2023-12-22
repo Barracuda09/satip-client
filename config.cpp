@@ -43,12 +43,12 @@ static uint32_t pls_root2gold(uint32_t root)
 
 satipConfig::satipConfig(int fe_type, vtunerOpt* settings):
 	m_fe_type(fe_type),
-	m_settings(settings),
 	m_signal_source(1),
 	m_pol(CONFIG_POL_HORIZONTAL),
 	m_status(CONFIG_STATUS_CHANNEL_INVALID),
 	m_pid_status(CONFIG_STATUS_PID_STATIONARY),
-	m_lnb_voltage_onoff(CONFIG_LNB_OFF)
+	m_lnb_voltage_onoff(CONFIG_LNB_OFF),
+	m_settings(settings)
 {
 	for (int i = 0; i < MAX_PIDS; i++)
 	{
@@ -95,7 +95,7 @@ void satipConfig::clearPidList()
 
 void satipConfig::updatePidList(u16* new_pid_list)
 {
-	DEBUG(MSG_MAIN, "====================== updatePidList ======================\n");
+	DEBUG(MSG_HW, "====================== updatePidList ======================\n");
 	int new_pid = -1;
 	int cur_pid = -1;
 	int found = 0;
@@ -107,7 +107,7 @@ void satipConfig::updatePidList(u16* new_pid_list)
 
 		new_pid = new_pid_list[new_index];
 
-		DEBUG(MSG_MAIN, "receive PID : %d\n", (int)new_pid);
+		DEBUG(MSG_HW, "receive PID : %d\n", (int)new_pid);
 	}
 
 	/* add pid */
@@ -121,25 +121,26 @@ void satipConfig::updatePidList(u16* new_pid_list)
 		found = 0;
 		for (int cur_index = 0; cur_index < MAX_PIDS; cur_index++)
 		{
-			if(m_pid_list[cur_index].pid == new_pid)
+			if (m_pid_list[cur_index].pid == new_pid)
 			{
 				found = 1;
 				switch(m_pid_list[cur_index].status)
 				{
 					case PID_ADD:
-						DEBUG(MSG_MAIN, "ADD PID(already added) : %d\n", new_pid);
+						DEBUG(MSG_HW, "ADD PID(already added) : %d\n", new_pid);
 						break;
 
 					case PID_DELETE:
-						DEBUG(MSG_MAIN, "ADD PID : %d\n", new_pid);
-						m_pid_list[cur_index].status = PID_VAILD;
+						DEBUG(MSG_HW, "REMOVE PID : %d\n", new_pid);
+						m_pid_list[cur_index].status = PID_VALID;
+						break;
 
-					case PID_VAILD:
-						DEBUG(MSG_MAIN, "ADD PID(already added) : %d\n", new_pid);
+					case PID_VALID:
+						DEBUG(MSG_HW, "ADD PID(already added) : %d\n", new_pid);
 						break;
 
 					case PID_INVALID:
-						DEBUG(MSG_MAIN, "ADD PID : %d\n", new_pid);
+						DEBUG(MSG_HW, "ADD PID : %d\n", new_pid);
 						m_pid_list[cur_index].status = PID_ADD;
 						break;
 
@@ -155,9 +156,9 @@ void satipConfig::updatePidList(u16* new_pid_list)
 			int cur_index = 0;
 			for (; cur_index < MAX_PIDS; cur_index++)
 			{
-				if(m_pid_list[cur_index].status == PID_INVALID)
+				if (m_pid_list[cur_index].status == PID_INVALID)
 				{
-					DEBUG(MSG_MAIN, "ADD PID : %d\n", new_pid);
+					DEBUG(MSG_HW, "ADD PID : %d\n", new_pid);
 					m_pid_list[cur_index].pid = new_pid;
 					m_pid_list[cur_index].status = PID_ADD;
 					break;
@@ -166,7 +167,7 @@ void satipConfig::updatePidList(u16* new_pid_list)
 
 			if (cur_index == MAX_PIDS)
 			{
-				ERROR(MSG_MAIN, "NEW PID ADD FAILED, m_pid_list list is fullfilled..");
+				ERROR(MSG_MAIN, "NEW PID ADD FAILED, m_pid_list list is full..");
 			}
 		}
 	}
@@ -199,15 +200,15 @@ void satipConfig::updatePidList(u16* new_pid_list)
 			switch(m_pid_list[cur_index].status)
 			{
 				case PID_ADD:
-					DEBUG(MSG_MAIN, "DELETE PID : %d\n", cur_pid);
+					DEBUG(MSG_HW, "DELETE PID : %d\n", cur_pid);
 					m_pid_list[cur_index].status = PID_INVALID;
 					break;
 
 				case PID_DELETE:
 					break;
 
-				case PID_VAILD:
-					DEBUG(MSG_MAIN, "DELETE PID : %d\n", cur_pid);
+				case PID_VALID:
+					DEBUG(MSG_HW, "DELETE PID : %d\n", cur_pid);
 					m_pid_list[cur_index].status = PID_DELETE;
 					break;
 
@@ -222,7 +223,7 @@ void satipConfig::updatePidList(u16* new_pid_list)
 
 	updatePidStatus();
 
-	DEBUG(MSG_MAIN, "====================== updatePidList END======================\n");
+	DEBUG(MSG_HW, "====================== updatePidList END======================\n");
 
 	return;
 }
@@ -352,7 +353,7 @@ std::string satipConfig::getTuningData()
         }
 
         /* pilots */
-        if(m_settings->m_force_plts)
+        if (m_settings->m_force_plts)
             m_pilot = PILOT_ON;
         else
             m_pilot = PILOT_OFF;
@@ -367,7 +368,7 @@ std::string satipConfig::getTuningData()
 		if (m_msys == SYS_DVBS2)
 		{
 			unsigned int _pls_code = m_pls_code;
-			if (m_plpid > 0 && m_plpid != NO_STREAM_ID_FILTER) {
+			if (m_plpid > 0 && m_plpid != M_NO_STREAM_ID_FILTER) {
 				/* input stream identificator (isi) */
 				oss_data << "&isi=" << (m_plpid & 0xFF);
 				/* old format */
@@ -489,7 +490,7 @@ std::string satipConfig::getTuningData()
 
 		if (m_msys == SYS_DVBT2)
 		{
-			if (m_plpid != NO_STREAM_ID_FILTER) {
+			if (m_plpid != M_NO_STREAM_ID_FILTER) {
 				/* plp id */
 				oss_data << "&plp=" << m_plpid;
 			}
@@ -523,14 +524,14 @@ std::string satipConfig::getSetupData()
 	std::ostringstream oss_addpid;
 	for (int cur_index = 0; cur_index < MAX_PIDS; cur_index++)
 	{
-		if ((m_pid_list[cur_index].status == PID_ADD) || (m_pid_list[cur_index].status == PID_VAILD))
+		if ((m_pid_list[cur_index].status == PID_ADD) || (m_pid_list[cur_index].status == PID_VALID))
 		{
 			if (!oss_addpid.str().empty())
 				oss_addpid << ',';
 
 			oss_addpid << m_pid_list[cur_index].pid;
 
-			m_pid_list[cur_index].status = PID_VAILD;
+			m_pid_list[cur_index].status = PID_VALID;
 		}
 	}
 
@@ -548,7 +549,7 @@ std::string satipConfig::getSetupData()
 	data = oss_data.str();
 	if (!data.empty())
 	{
-		if(data[0] == '&')
+		if (data[0] == '&')
 			data.erase(data.begin());
 
 		data.insert(data.begin(), '?');
@@ -585,7 +586,7 @@ std::string satipConfig::getPlayData()
 
 				oss_addpid << m_pid_list[cur_index].pid;
 
-				m_pid_list[cur_index].status = PID_VAILD;
+				m_pid_list[cur_index].status = PID_VALID;
 			}
 			else if (m_pid_list[cur_index].status == PID_DELETE)
 			{
@@ -614,7 +615,7 @@ std::string satipConfig::getPlayData()
 	data = oss_data.str();
 	if (!data.empty())
 	{
-		if(data[0] == '&')
+		if (data[0] == '&')
 			data.erase(data.begin());
 
 		data.insert(data.begin(), '?');

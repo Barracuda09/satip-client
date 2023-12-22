@@ -23,7 +23,10 @@
 #include "timer.h"
 #include "config.h"
 #include "rtp.h"
+
+#include <memory>
 #include <string>
+#include <cstdint>
 
 enum 
 {
@@ -65,8 +68,8 @@ public:
 	static void timeoutStreamInfo(void *ptr);
 
 private:
-	char *m_host;
-	char* m_port;
+	std::string m_host;
+	std::string m_port;
 	satipRTP *m_rtp;
 	satipConfig *m_satip_config;
 	satipTimer m_satip_timer;
@@ -74,20 +77,25 @@ private:
 	timer_elem *m_timer_keep_alive;
 	int m_fd;
 
-	char m_txbuf[1024];
-	char *m_rx_data;
+	std::unique_ptr<char[]> m_rx_data;
 	int m_rx_data_len;
-	int m_rx_data_pos;
+	int m_rx_data_wpos;
 
 	int m_rtsp_status;
 	int m_rtsp_request;
 
-	enum { RTSP_FAILED = -1, RTSP_OK = 0, RTSP_ERROR = 1, RTSP_RESPONSE_COMPLETE = 2 };
+	enum {
+		RTSP_FAILED = -1,
+		RTSP_OK = 0,
+		RTSP_ERROR = 1,
+		RTSP_RESPONSE_COMPLETE = 2
+	};
 
 	std::string m_rtsp_session_id;
 	int m_rtsp_stream_id;
 	int m_rtsp_timeout;
 	int m_rtsp_cseq;
+	uint16_t m_rtp_tcp_pseq;
 
 	bool m_wait_response;
 	
@@ -97,11 +105,11 @@ private:
 	int rtpData(size_t len);
 
 	int handleResponse();
-	int handleResponseSetup();
-	int handleResponsePlay();
-	int handleResponseOption();
-	int handleResponseTeardown();
-	int handleResponseDescribe();
+	int handleResponseSetup(const std::string& msg);
+	int handleResponsePlay(const std::string& msg);
+	int handleResponseOption(const std::string& msg);
+	int handleResponseTeardown(const std::string& msg);
+	int handleResponseDescribe(const std::string& msg);
 
 	int sendRequest(int request);
 	int sendSetup();

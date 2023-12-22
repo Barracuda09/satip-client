@@ -40,7 +40,7 @@ bool main_running = true;
 
 void sigint_handler(int signo)
 {
-	DEBUG(MSG_MAIN, "sigint_handler called\n");
+	DEBUG(MSG_MAIN, "sigint_handler called (%d)\n", signo);
 	signal(SIGINT, SIG_DFL);
 	sessionManager* vtmng = sessionManager::getInstance();
 	vtmng->sessionStop();

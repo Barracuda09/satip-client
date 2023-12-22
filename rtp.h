@@ -32,6 +32,7 @@ class satipRTP
 	pthread_t m_thread;
 	bool m_tcp_data;
 	bool m_running;
+	int m_rtp_net_buffer_size_mb;
 
 	/* rtcp data */
 	bool m_hasLock;
@@ -47,7 +48,7 @@ class satipRTP
 	int openRTP();
 
 public:
-	satipRTP(int vtuner_fd, int tcp_data);
+	satipRTP(int vtuner_fd, bool tcp_data, int rtp_net_buffer_size_mb);
 	virtual ~satipRTP();
 	void unset();
 	int get_rtp_port() { return m_rtp_port; }
@@ -58,7 +59,7 @@ public:
 
 	int Write(int fd, unsigned char *buffer, int size);
 	ssize_t Read(int fd, unsigned char *buffer, int size);
-	int rtpTcpData(unsigned char *data, int size);
+	void rtpTcpData(unsigned char *data, int size);
 	void run();
 	void stop();
 

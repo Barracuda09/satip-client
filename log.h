@@ -25,22 +25,22 @@ extern unsigned int dbg_mask; // MSG_DATA | MSG_MAIN | MSG_NET | MSG_HW | MSG_SR
 extern int use_syslog;
 
 
-#define MSG_MAIN	1
-#define MSG_NET		2
-#define MSG_HW		4
-#define MSG_SRV		8
-#define MSG_DATA        16
-#define MSG_ALL		(MSG_DATA | MSG_MAIN | MSG_NET | MSG_HW | MSG_SRV )
+#define MSG_MAIN   1
+#define MSG_NET    2
+#define MSG_HW     4
+#define MSG_SRV    8
+#define MSG_DATA  16
+#define MSG_ALL   (MSG_DATA | MSG_MAIN | MSG_NET | MSG_HW | MSG_SRV )
 
-#define MSG_ERROR	1
-#define MSG_WARN	2
-#define MSG_INFO	3
-#define MSG_DEBUG	4
+#define MSG_ERROR  1
+#define MSG_WARN   2
+#define MSG_INFO   3
+#define MSG_DEBUG  4
 
-#define ERROR(mtype, msg, ...) write_message(mtype, MSG_ERROR, "[%d %-20s:%4u][%-25s]\t error: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
-#define  WARN(mtype, msg, ...) write_message(mtype, MSG_WARN,  "[%d %-20s:%4u][%-25s]\t  warn: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
-#define  INFO(mtype, msg, ...) write_message(mtype, MSG_INFO,  "[%d %-20s:%4u][%-25s]\t  info: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
-#define DEBUG(mtype, msg, ...) write_message(mtype, MSG_DEBUG, "[%d %-20s:%4u][%-25s]\t debug: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+#define ERROR(mtype, msg, ...) write_message(mtype, MSG_ERROR, "[%d %-15s:%4u][%-27s]\t error: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+#define  WARN(mtype, msg, ...) write_message(mtype, MSG_WARN,  "[%d %-15s:%4u][%-27s]\t  warn: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+#define  INFO(mtype, msg, ...) write_message(mtype, MSG_INFO,  "[%d %-15s:%4u][%-27s]\t  info: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
+#define DEBUG(mtype, msg, ...) write_message(mtype, MSG_DEBUG, "[%d %-15s:%4u][%-27s]\t debug: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
 
 void write_message(const unsigned int, const int, const char*, ...);
 #endif // __LOG_H__

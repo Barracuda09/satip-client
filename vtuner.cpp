@@ -191,7 +191,7 @@ int satipVtuner::openVtuner()
 			break;
 
 		default:
-			ERROR(MSG_MAIN,"Unknown frontend type: %d\n", fe_type);
+			ERROR(MSG_MAIN, "Unknown frontend type: %d\n", fe_type);
 			goto error;
 			break;
 	}
@@ -224,6 +224,11 @@ int satipVtuner::openVtuner()
 				p[0].u.buffer.data[ncaps++] = SYS_DVBT;
 				if (fe_info.caps & FE_CAN_2G_MODULATION)
 					p[0].u.buffer.data[ncaps++] = SYS_DVBT2;
+				break;
+
+			default:
+				ERROR(MSG_MAIN, "Unknown frontend type: %d\n", fe_type);
+				goto error;
 				break;
 		}
 	//		p[0].u.buffer.len = ncaps;
@@ -455,7 +460,7 @@ void satipVtuner::setDiseqc(struct vtuner_message* msg)
 	{
 		/* committed switch */
 		u8 data=cmd->msg[3];
-		int voltage;
+		int voltage = SEC_VOLTAGE_OFF;
 
 		if ( (data & 0x01) == 0x01 )
 		{
@@ -487,7 +492,6 @@ void satipVtuner::setDiseqc(struct vtuner_message* msg)
 	{
 		/* uncommitted switch */
 		u8 data=cmd->msg[3];
-		int voltage;
 
 		int position = (data & 0x0F) + 1;
 		m_satip_cfg->setPosition(position);
