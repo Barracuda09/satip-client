@@ -8,6 +8,23 @@ Supported options in /etc/vtuners.conf:
 - ipaddr - the ip address of the satip server
 - port - the port of the satip server
 
+Supported Startup arguments in /etc/init.d/satipclient:
+- -m <debug_mask>  Used for debugging (Add together)
+                     MSG_MAIN   1
+                     MSG_NET    2
+                     MSG_HW     4
+                     MSG_SRV    8
+                     MSG_DATA  16
+- -l <log_level>   Log level: (default: 1)
+                     0: None
+                     1: Error
+                     2: Warning
+                     3: Info
+                     4: Debug
+- -y               Use syslog instead of STDERR for logging
+
+Example: start-stop-daemon -S -b -x /usr/bin/satipclient -- -m 3 -l 4 -y
+
 ## Building
 
 ```

@@ -129,7 +129,6 @@ void satipRTSP::resetConnect()
 	m_rtsp_status = RTSP_STATUS_CONFIG_WAITING;
 	m_rtsp_request = RTSP_REQUEST_NONE;
 	m_rtsp_cseq = 1;
-	m_rtp_tcp_pseq = 0;
 	m_rtsp_session_id.clear();
 	m_rtsp_stream_id = -1;
 	m_rtsp_timeout = 60;
@@ -258,8 +257,8 @@ int satipRTSP::handleResponse()
 	if (availableSize > 0) {
 		if (overrun) {
 			DEBUG(MSG_NET,"RTSP Recovered from buffer overrun: len %d  wpos %d\n", m_rx_data_len, m_rx_data_wpos);
+			overrun = false;
 		}
-		overrun = false;
 		const ssize_t read_data = recv(m_fd, m_rx_data.get() + m_rx_data_wpos, availableSize, 0);
 		if (read_data == -1) {
 			DEBUG(MSG_NET,"RTSP recv: %d\n", read_data);
@@ -346,7 +345,6 @@ int satipRTSP::handleResponse()
 					break;
 				}
 				const size_t packetSize = 4 + ((ptr[2] << 8) + ptr[3]);
-				m_rtp_tcp_pseq = (ptr[6] << 8) + ptr[7];
 				if (dataSize < packetSize) {
 					res = RTSP_OK;
 					break;
@@ -717,21 +715,21 @@ void satipRTSP::handleRTSPStatus()
 			break;
 
 		case RTSP_STATUS_SESSION_PLAYING: // PLAY request sended, wait POLLIN event to receive PLAY response.
-//			DEBUG(MSG_MAIN, "RTSP STATUS : RTSP_STATUS_SESSION_PLAYING\n");
 			sendRequest(RTSP_REQUEST_PLAY);
 			break;
 
 		case RTSP_STATUS_SESSION_TRANSMITTING:
-//			DEBUG(MSG_MAIN, "RTSP STATUS : RTSP_STATUS_SESSION_TRANSMITTING\n");
 			{
 				t_channel_status channel_status = m_satip_config->getChannelStatus();
 				t_pid_status pid_status = m_satip_config->getPidStatus();
 
-				if (channel_status == CONFIG_STATUS_CHANNEL_CHANGED)
+				if (channel_status == CONFIG_STATUS_CHANNEL_CHANGED) {
 					DEBUG(MSG_MAIN, "CHANNEL STATUS : CONFIG_STATUS_CHANNEL_CHANGED\n");
+				}
 
-				if (pid_status == CONFIG_STATUS_PID_CHANGED)
+				if (pid_status == CONFIG_STATUS_PID_CHANGED) {
 					DEBUG(MSG_MAIN, "PID STATUS : CONFIG_STATUS_PID_CHANGED\n");
+				}
 
 				if ((channel_status == CONFIG_STATUS_CHANNEL_CHANGED) || (pid_status == CONFIG_STATUS_PID_CHANGED))
 				{

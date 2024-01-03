@@ -47,6 +47,7 @@ satipRTP::satipRTP(int vtuner_fd, bool tcp_data, int rtp_net_buffer_size_mb) :
 						m_thread(0),
 						m_running(false),
 						m_rtp_net_buffer_size_mb(rtp_net_buffer_size_mb),
+						m_rtp_pseq(0),
 						m_hasLock(false),
 						m_signalStrength(0),
 						m_signalQuality(0),
@@ -252,17 +253,25 @@ void satipRTP::rtcpData(unsigned char* a_buffer, int a_size)
 int satipRTP::Write(int fd, unsigned char *buffer, int size)
 {
 	int count = 0;
-	ssize_t write_res;
-	while(count < size)
-	{
-		write_res = write(fd, buffer + count, size - count);
-		if (write_res == 0)
+	// Check for begin of RTP Header, then get packet sequence number
+	if (buffer[0] == 0x80 && buffer[1] == 0x21) {
+		const uint16_t pseq = (buffer[2] << 8) + buffer[3];
+		++m_rtp_pseq;
+		m_rtp_pseq %= 0x10000;
+		if (m_rtp_pseq != pseq) {
+			DEBUG(MSG_NET, "RTP/AVP Data Continuity error. expected: %d - packet: %d\n", m_rtp_pseq, pseq);
+			m_rtp_pseq = pseq;
+		}
+		count = 12;
+	}
+	while(count < size) {
+		const auto write_res = ::write(fd, buffer + count, size - count);
+		if (write_res == 0) {
 			return -1;
+		}
 
-		if (write_res == -1)
-		{
-			if (errno == EINTR)
-			{
+		if (write_res == -1) {
+			if (errno == EINTR)	{
 				DEBUG(MSG_MAIN, "WRITE : raise EINTR..continue.\n");
 				continue;
 			}
@@ -330,9 +339,8 @@ void* satipRTP::rtpDump()
 		{
 			rx_bytes = Read(pollfds[0].fd, rx_data, sizeof(rx_data));
 
-			if ((rx_bytes > 12) && (rx_data[12] == 0x47)) // remove RTP encapsulation 12bytes.
-			{
-				wr_bytes= Write(m_vtuner_fd ,&rx_data[12], rx_bytes-12);
+			if (rx_bytes > 12 && rx_data[12] == 0x47)  {
+				wr_bytes = Write(m_vtuner_fd, &rx_data[0], rx_bytes);
 				DEBUG(MSG_DATA, "RTP DATA : read %d bytes, write %d bytes\n", rx_bytes, wr_bytes);
 			}
 		}
@@ -354,18 +362,14 @@ void* satipRTP::rtpDump()
 
 void satipRTP::rtpTcpData(unsigned char *data, int size)
 {
-	if (size <= 4 + 12)
-	{
+	if (size <= 4 + 12)	{
 		return;
 	}
 
-	if (data[1] == 0)
-	{
-		const int wr = Write(m_vtuner_fd, data + 4 + 12, size - 4 - 12);
+	if (data[1] == 0) {
+		const int wr = Write(m_vtuner_fd, data + 4, size - 4);
 		DEBUG(MSG_DATA, "RTP TCP DATA : read %d bytes, write %d bytes\n", size - 4, wr);
-	}
-	else if (data[1] == 1)
-	{
+	} else if (data[1] == 1) {
 		rtcpData(data + 4, size - 4);
 		DEBUG(MSG_DATA, "RTCP TCP DATA : read %d bytes\n", size - 4);
 	}
@@ -391,6 +395,7 @@ void satipRTP::stop()
 	}
 
 	m_running = false;
+	m_rtp_pseq = 0;
 	if (m_thread)
 	{
 		int status;

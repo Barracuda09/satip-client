@@ -15,6 +15,9 @@
  * GNU General Public License for more details.
  */
 
+#include <fstream>
+#include <iomanip>
+
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
@@ -58,4 +61,45 @@ void write_message(const unsigned int mtype, const int level, const char* fmt, .
 
 	strncpy(msg, "", sizeof(msg));
 } 
+
+std::string convertToHexASCIITable(
+		const unsigned char* p,
+		const std::size_t length,
+		const std::size_t blockSize) {
+	if (blockSize == 0) {
+		return "";
+	}
+	std::stringstream hexString;
+	std::stringstream asciiString;
+	const std::size_t lengthNew = (((length / blockSize) + (length %  blockSize > 0 ? 1 : 0)) * blockSize);
+
+	std::string out("");
+	for (std::size_t i = 0; i < length; ++i) {
+		const unsigned char c = p[i];
+		const unsigned char ascii = std::isprint(c) ? c : '.';
+		hexString << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << static_cast<unsigned int>(c);
+		asciiString << ascii;
+		if (((i + 1) %  blockSize) == 0) {
+			out += hexString.str();
+			out += "  ";
+			out += asciiString.str();
+			out += "\r\n";
+			hexString.str("");
+			asciiString.str("");
+		} else {
+			hexString << " ";
+		}
+	}
+	// Is there remaining strings to add to out buffer
+	const int diff = lengthNew - length;
+	if (diff > 0) {
+		std::string space(diff * 3, ' ');
+		out += hexString.str();
+		out += space;
+		out += " ";
+		out += asciiString.str();
+		out += "\r\n";
+	}
+	return out;
+}
 

@@ -18,8 +18,11 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#include <string>
+
 #include <sys/types.h>
 #include <unistd.h>
+
 extern int dbg_level;
 extern unsigned int dbg_mask; // MSG_DATA | MSG_MAIN | MSG_NET | MSG_HW | MSG_SRV
 extern int use_syslog;
@@ -43,4 +46,10 @@ extern int use_syslog;
 #define DEBUG(mtype, msg, ...) write_message(mtype, MSG_DEBUG, "[%d %-15s:%4u][%-27s]\t debug: " msg, getpid(), __FILE__, __LINE__, __FUNCTION__, ## __VA_ARGS__)
 
 void write_message(const unsigned int, const int, const char*, ...);
+
+std::string convertToHexASCIITable(
+		const unsigned char* p,
+		const std::size_t length,
+		const std::size_t blockSize);
+
 #endif // __LOG_H__

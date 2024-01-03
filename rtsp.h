@@ -95,8 +95,6 @@ private:
 	int m_rtsp_stream_id;
 	int m_rtsp_timeout;
 	int m_rtsp_cseq;
-	uint16_t m_rtp_tcp_pseq;
-
 	bool m_wait_response;
 	
 	void resetConnect();
