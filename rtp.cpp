@@ -382,15 +382,16 @@ void satipRTP::run()
 
 void satipRTP::stop()
 {
-	if (m_rtcp_socket != -1)
-	{
-		write(m_rtcp_socket, "end", 4);
+	if (m_rtcp_socket != -1) {
+		const auto write_res = ::write(m_rtcp_socket, "end", 4);
+		if (write_res < 3) {
+			ERROR(MSG_MAIN,"RTP thread ENDED wrong.\n");
+		}
 	}
 
 	m_running = false;
 	m_rtp_pseq = 0;
-	if (m_thread)
-	{
+	if (m_thread) {
 		pthread_join(m_thread, nullptr);
 		DEBUG(MSG_MAIN,"RTP thread END.\n");
 		m_thread = 0;
