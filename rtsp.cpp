@@ -32,7 +32,6 @@
 
 #include <sstream> // std::ostringstream
 #include <cstring>
-#include <iomanip>
 #include <string>
 #include <string_view>
 
@@ -91,20 +90,21 @@ static std::string findParameter(
 }
 
 satipRTSP::satipRTSP(satipConfig* satip_config,
-			     const char* host, 
-			     const char* rtsp_port,
-			     satipRTP *rtp):
-			     m_host(host),
-			     m_port(rtsp_port),
-			     m_rtp(rtp),
-			     m_satip_config(satip_config),
-			     m_timer_reset_connect(NULL),
-			     m_timer_keep_alive(NULL),
-			     m_fd(-1),
-			     m_rx_data_wpos(0),
-			     m_rtsp_status(RTSP_STATUS_CONFIG_WAITING),
-			     m_rtsp_request(RTSP_REQUEST_NONE),
-			     m_wait_response(false)
+	const char* host,
+	const char* rtsp_port,
+	satipRTP *rtp):
+		m_host(host),
+		m_port(rtsp_port),
+		m_rtp(rtp),
+		m_satip_config(satip_config),
+		m_timer_reset_connect(NULL),
+		m_timer_keep_alive(NULL),
+		m_fd(-1),
+		m_rx_data_wpos(0),
+		m_rtsp_status(RTSP_STATUS_CONFIG_WAITING),
+		m_rtsp_request(RTSP_REQUEST_NONE),
+		m_wait_response(false),
+		m_channel_changed(false)
 {
 	if (satip_config->isTcpData()) {
 		DEBUG(MSG_MAIN,"Create RTSP. (host : %s, port : %s, TCP data mode)\n", m_host.c_str(), m_port.c_str());
@@ -115,8 +115,8 @@ satipRTSP::satipRTSP(satipConfig* satip_config,
 	}
 	m_rx_data = std::make_unique<char[]>(m_rx_data_len);
 
-	m_timer_reset_connect = m_satip_timer.create(timeoutConnect, (void *)this, "reset connect");
-	m_timer_keep_alive = m_satip_timer.create(timeoutKeepAlive, (void *)this, "keep alive message");
+	m_timer_reset_connect = m_satip_timer.create(timeoutConnect, static_cast<void *>(this), "reset connect");
+	m_timer_keep_alive = m_satip_timer.create(timeoutKeepAlive, static_cast<void *>(this), "keep alive message");
 
 	resetConnect();
 }
@@ -136,6 +136,7 @@ void satipRTSP::resetConnect()
 	m_rx_data_wpos = 0;
 
 	m_wait_response = false;
+	m_channel_changed = false;
 
 	if (m_fd != -1)
 	{
@@ -150,21 +151,21 @@ void satipRTSP::resetConnect()
 void satipRTSP::timeoutConnect(void *ptr)
 {
 	DEBUG(MSG_MAIN, "timeoutConnect\n");
-	satipRTSP* _this = (satipRTSP*)ptr;
+	satipRTSP* _this = static_cast<satipRTSP*>(ptr);
 	_this->resetConnect();
 }
 
 void satipRTSP::timeoutKeepAlive(void *ptr)
 {
 	DEBUG(MSG_MAIN, "timeoutKeepAlive\n");
-	satipRTSP* _this = (satipRTSP*)ptr;
+	satipRTSP* _this = static_cast<satipRTSP*>(ptr);
 	_this->sendRequest(RTSP_REQUEST_OPTION);
 }
 
 void satipRTSP::timeoutStreamInfo(void *ptr)
 {
 	DEBUG(MSG_MAIN, "timeoutStreamInfo\n");
-	satipRTSP* _this = (satipRTSP*)ptr;
+	satipRTSP* _this = static_cast<satipRTSP*>(ptr);
 	_this->sendRequest(RTSP_REQUEST_DESCRIBE);
 }
 
@@ -297,9 +298,17 @@ int satipRTSP::handleResponse()
 						break;
 					case RTSP_REQUEST_SETUP:
 						res = handleResponseSetup(response);
+						if (m_channel_changed) {
+							m_rx_data_wpos = 0;
+							m_channel_changed = false;
+						}
 						break;
 					case RTSP_REQUEST_PLAY:
 						res = handleResponsePlay(response);
+						if (m_channel_changed) {
+							m_rx_data_wpos = 0;
+							m_channel_changed = false;
+						}
 						break;
 					case RTSP_REQUEST_TEARDOWN:
 						res = handleResponseTeardown(response);
@@ -330,7 +339,7 @@ int satipRTSP::handleResponse()
 	}
 
 	// Are we expecting embedded RTP data? then extract it
-	if (m_satip_config->isTcpData()) {
+	if (m_satip_config->isTcpData() && !m_channel_changed) {
 		// extract embedded data
 		size_t dataSize = m_rx_data_wpos;
 		if (dataSize >= 4) {
@@ -518,7 +527,9 @@ int satipRTSP::sendSetup()
 	if (m_rtsp_stream_id != -1)
 		oss_tx_data << "stream=" << m_rtsp_stream_id;
 
-	oss_tx_data << m_satip_config->getSetupData() << " RTSP/1.0\r\n";
+	const auto [data, channelChanged] = m_satip_config->getSetupData();
+	m_channel_changed = channelChanged;
+	oss_tx_data << data << " RTSP/1.0\r\n";
 	oss_tx_data << "CSeq: " << m_rtsp_cseq++ << "\r\n";
 	if (!m_rtsp_session_id.empty())
 		oss_tx_data << "Session: " << m_rtsp_session_id << "\r\n";
@@ -536,8 +547,9 @@ int satipRTSP::sendSetup()
 
 	DEBUG(MSG_MAIN, "SETUP DATA : \n%s\n", tx_data.c_str());
 
-	if (send(m_fd, tx_data.c_str(), tx_data.size(), 0) < 0)
+	if (send(m_fd, tx_data.c_str(), tx_data.size(), 0) < 0) {
 		return RTSP_ERROR;
+	}
 
 	return RTSP_OK;
 }
@@ -565,9 +577,10 @@ int satipRTSP::sendPlay()
 		ERROR(MSG_MAIN, "PLAY : stream_id and session_id are required..\n");
 		return RTSP_ERROR;
 	}
-
+	const auto [data, channelChanged] = m_satip_config->getPlayData();
+	m_channel_changed = channelChanged;
 	oss_tx_data << "PLAY rtsp://" << m_host << ":" << m_port << "/" << "stream=" << m_rtsp_stream_id;
-	oss_tx_data << m_satip_config->getPlayData() << " RTSP/1.0\r\n";
+	oss_tx_data << data << " RTSP/1.0\r\n";
 	oss_tx_data << "CSeq: " << m_rtsp_cseq++ << "\r\n";
 	oss_tx_data << "Session: " << m_rtsp_session_id << "\r\n";
 	oss_tx_data << "User-Agent: " << user_agent << "\r\n";
@@ -577,8 +590,9 @@ int satipRTSP::sendPlay()
 
 	DEBUG(MSG_MAIN, "PLAY DATA : \n%s\n", tx_data.c_str());
 
-	if (send(m_fd, tx_data.c_str(), tx_data.size(), 0) < 0)
+	if (send(m_fd, tx_data.c_str(), tx_data.size(), 0) < 0) {
 		return RTSP_ERROR;
+	}
 
 	return RTSP_OK;
 }

@@ -75,7 +75,7 @@ satipSession::~satipSession()
 
 void *satipSession::thread_wrapper(void *ptr)
 {
-	return ((satipSession*)ptr)->satipMainLoop();
+	return static_cast<satipSession*>(ptr)->satipMainLoop();
 }
 
 void *satipSession::satipMainLoop()
@@ -154,9 +154,8 @@ void satipSession::join()
 {
 	if (m_session_thread) 
 	{
-		int status;
-		pthread_join(m_session_thread, (void **)&status);
-		DEBUG(MSG_MAIN,"SATIP session thread END : %d.\n", status);
+		pthread_join(m_session_thread, nullptr);
+		DEBUG(MSG_MAIN,"SATIP session thread END\n");
 		m_session_thread = 0;
 	}
 }

@@ -22,6 +22,7 @@
 #define _CONFIG_H_
 
 #include <string>
+#include <utility>
 #include <linux/dvb/frontend.h>
 
 #include "option.h"
@@ -143,12 +144,12 @@ public:
 	t_channel_status getChannelStatus();
 	void setChannelChanged();
 	t_pid_status getPidStatus();
-	void updatePidList(u16* new_pid_list);
+	void updatePidList(const u16* new_pid_list);
 	void updatePidStatus();
 
 	/* write RTSP message */
-	std::string getSetupData();
-	std::string getPlayData();
+	std::pair<std::string, bool> getSetupData();
+	std::pair<std::string, bool> getPlayData();
 
 private:
 	static constexpr int M_NO_STREAM_ID_FILTER = NO_STREAM_ID_FILTER;

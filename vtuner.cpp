@@ -63,7 +63,7 @@ static inline timespec &operator+=( timespec &t1, const long msek )
 static inline int64_t timeout_msec ( const timespec & orig, const timespec &now )
 {
 	const timespec tv = orig - now;
-	return (int64_t)tv.tv_sec * 1000 + tv.tv_nsec / 1000000;
+	return static_cast<int64_t>(tv.tv_sec) * 1000 + tv.tv_nsec / 1000000;
 }
 
 static inline int64_t timeout_msec ( const timespec & orig )
@@ -149,7 +149,7 @@ int satipVtuner::openVtuner()
 			fe_info.symbol_rate_max=45000000;
 			fe_info.symbol_rate_tolerance=0;
 			fe_info.notifier_delay=0;
-			fe_info.caps=(fe_caps_t)(FE_CAN_INVERSION_AUTO |
+			fe_info.caps= static_cast<fe_caps_t>(FE_CAN_INVERSION_AUTO |
 						FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 | FE_CAN_FEC_4_5 |
 						FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_8_9 |
 						FE_CAN_QPSK | FE_CAN_RECOVER | FE_CAN_2G_MODULATION |
@@ -168,7 +168,7 @@ int satipVtuner::openVtuner()
 			fe_info.symbol_rate_max=(57840000/2)/4;		/* SACLK/4 */
 			fe_info.symbol_rate_tolerance=0;
 			fe_info.notifier_delay=0;
-			fe_info.caps=(fe_caps_t)(FE_CAN_INVERSION_AUTO |
+			fe_info.caps=static_cast<fe_caps_t>(FE_CAN_INVERSION_AUTO |
 						FE_CAN_QAM_16 | FE_CAN_QAM_32 | FE_CAN_QAM_64 | FE_CAN_QAM_128 |
 						FE_CAN_QAM_256 | FE_CAN_RECOVER | FE_CAN_FEC_AUTO);
 			break;
@@ -182,7 +182,7 @@ int satipVtuner::openVtuner()
 			fe_info.frequency_stepsize=62500;
 			fe_info.frequency_tolerance=0;
 			fe_info.notifier_delay=0;
-			fe_info.caps=(fe_caps_t)(FE_CAN_INVERSION_AUTO |
+			fe_info.caps=static_cast<fe_caps_t>(FE_CAN_INVERSION_AUTO |
 						FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
 						FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 						FE_CAN_QAM_16 | FE_CAN_QAM_64 | FE_CAN_QPSK |
@@ -284,27 +284,25 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 	{
 		case DTV_FREQUENCY:
 		{
-			DEBUG(MSG_MAIN,"DTV_FREQUENCY : %d\n",(unsigned int)data);
+			DEBUG(MSG_MAIN,"DTV_FREQUENCY : %d\n", data);
 
 			unsigned int freq = 0;
 			if ( m_satip_cfg->getFeType() == FE_TYPE_SAT) // Khz to Mhz
 			{
-				freq = (unsigned int)data/100;
+				freq = static_cast<unsigned int>(data)/100;
 
 				if ( m_tone == SEC_TONE_ON ) /* high band */
 				{
 					freq += 106000;
 				}
-
 				else /* low band */
 				{
-					freq+=97500;
+					freq += 97500;
 				}
 			}
-
 			else // DVB-T/C, hz to Mhz
 			{
-				freq = (unsigned int)data/100000;
+				freq = static_cast<unsigned int>(data)/100000;
 			}
 
 			m_satip_cfg->setFrequency(freq);
@@ -313,7 +311,7 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 		case DTV_DELIVERY_SYSTEM:
 		{
-			DEBUG(MSG_MAIN,"DTV_DELIVERY_SYSTEM : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_DELIVERY_SYSTEM : %d\n", data);
 			m_satip_cfg->setModsys(data);
 			break;
 		}
@@ -327,15 +325,15 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 		case DTV_SYMBOL_RATE:
 		{
-			DEBUG(MSG_MAIN,"DTV_SYMBOL_RATE : %d\n",(int)data);
-			int symrate = (unsigned int)data/1000;
+			DEBUG(MSG_MAIN,"DTV_SYMBOL_RATE : %d\n", data);
+			int symrate = static_cast<unsigned int>(data)/1000;
 			m_satip_cfg->setSymrate(symrate);
 			break;
 		}
 
 		case DTV_INNER_FEC:
 		{
-			DEBUG(MSG_MAIN,"DTV_INNER_FEC : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_INNER_FEC : %d\n", data);
 
 			int fec = data & 31;
 			if (fec <= FEC_9_10)
@@ -352,14 +350,14 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 		case DTV_ROLLOFF:
 		{
-			DEBUG(MSG_MAIN,"DTV_ROLLOFF : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_ROLLOFF : %d\n", data);
 			m_satip_cfg->setRolloff(data);
 			break;
 		}
 
 		case DTV_PILOT:
 		{
-			DEBUG(MSG_MAIN,"DTV_PILOT : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_PILOT : %d\n", data);
 			m_satip_cfg->setPilots(data);
 			break;
 		}
@@ -396,14 +394,14 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 		case DTV_TRANSMISSION_MODE:
 		{
-			DEBUG(MSG_MAIN,"DTV_TRANSMISSION_MODE : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_TRANSMISSION_MODE : %d\n", data);
 			m_satip_cfg->setTransmode(data);
 			break;
 		}
 
 		case DTV_GUARD_INTERVAL:
 		{
-			DEBUG(MSG_MAIN,"DTV_GUARD_INTERVAL : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_GUARD_INTERVAL : %d\n", data);
 			m_satip_cfg->setGuardInterval(data);
 			break;
 		}
@@ -416,15 +414,15 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 		case DTV_BANDWIDTH_HZ:
 		{
-			DEBUG(MSG_MAIN,"DTV_BANDWIDTH_HZ : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_BANDWIDTH_HZ : %d\n", data);
 			m_satip_cfg->setBandwidth(data);
 			break;
 		}
 
 		case DTV_STREAM_ID:
-			DEBUG(MSG_MAIN,"DTV_STREAM_ID : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_STREAM_ID : %d\n", data);
 		{
-			unsigned int plp = (unsigned int)data;
+			unsigned int plp = static_cast<unsigned int>(data);
 			m_satip_cfg->setPLP(plp);
 			break;
 		}
@@ -437,9 +435,9 @@ void satipVtuner::setProperty(struct vtuner_message* msg)
 
 #if DVB_VER_ATLEAST(5, 11)
 		case DTV_SCRAMBLING_SEQUENCE_INDEX:
-			DEBUG(MSG_MAIN,"DTV_SCRAMBLING_SEQUENCE_INDEX : %d\n",(int)data);
+			DEBUG(MSG_MAIN,"DTV_SCRAMBLING_SEQUENCE_INDEX : %d\n", data);
 		{
-			unsigned int pls_code = (unsigned int)data;
+			unsigned int pls_code = static_cast<unsigned int>(data);
 			m_satip_cfg->setPLScode(pls_code);
 			break;
 		}
@@ -565,13 +563,13 @@ void satipVtuner::vtunerEvent()
 		case MSG_READ_SIGNAL_STRENGTH:
 			//INFO(MSG_MAIN,"MSG_READ_SIGNAL_STRENGTH %d -> %d\n", msg.body.ss, rtcp_data.signalStrength);
 			if (m_satip_rtp)
-				msg.body.ss = (u16)m_satip_rtp->getSignalStrength();
+				msg.body.ss = static_cast<u16>(m_satip_rtp->getSignalStrength());
 			break;
 
 		case MSG_READ_SNR:
 			//INFO(MSG_MAIN,"MSG_READ_SNR %d -> %d\n", msg.body.snr, m_satip_cfg->satip_get_signal_quality());
 			if (m_satip_rtp)
-				msg.body.snr = (u16)m_satip_rtp->getSignalStrength() * (u16)m_satip_rtp->getSignalQuality() / 65535;
+				msg.body.snr = static_cast<u16>(m_satip_rtp->getSignalStrength()) * static_cast<u16>(m_satip_rtp->getSignalQuality()) / 65535;
 			break;
 
 		case MSG_READ_UCBLOCKS:

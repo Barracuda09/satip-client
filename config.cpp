@@ -93,7 +93,7 @@ void satipConfig::clearPidList()
 	}
 }
 
-void satipConfig::updatePidList(u16* new_pid_list)
+void satipConfig::updatePidList(const u16* new_pid_list)
 {
 	DEBUG(MSG_HW, "====================== updatePidList ======================\n");
 	int new_pid = -1;
@@ -105,15 +105,15 @@ void satipConfig::updatePidList(u16* new_pid_list)
 		if (new_pid_list[new_index] >= 0x2000)
 			continue;
 
-		new_pid = new_pid_list[new_index];
+		new_pid = static_cast<int>(new_pid_list[new_index]);
 
-		DEBUG(MSG_HW, "receive PID : %d\n", (int)new_pid);
+		DEBUG(MSG_HW, "receive PID : %d\n", new_pid);
 	}
 
 	/* add pid */
 	for (int new_index = 0; new_index < MAX_PIDS; new_index++)
 	{
-		new_pid = (int)new_pid_list[new_index];
+		new_pid = static_cast<int>(new_pid_list[new_index]);
 
 		if (new_pid >= 0x2000)
 			continue;
@@ -183,7 +183,7 @@ void satipConfig::updatePidList(u16* new_pid_list)
 		found = 0;
 		for (int new_index = 0; new_index < MAX_PIDS; new_index++)
 		{
-			new_pid = (int)new_pid_list[new_index];
+			new_pid = static_cast<int>(new_pid_list[new_index]);
 
 			if (new_pid >= 0x2000)
 				continue;
@@ -510,15 +510,16 @@ std::string satipConfig::getTuningData()
 	return oss_data.str();
 }
 
-std::string satipConfig::getSetupData()
+std::pair<std::string, bool> satipConfig::getSetupData()
 {
-	std::string data;
+	bool channelChanged = false;
 	std::ostringstream oss_data;
 
 	if (m_status == CONFIG_STATUS_CHANNEL_CHANGED)
 	{
 		oss_data << getTuningData();
 		m_status = CONFIG_STATUS_CHANNEL_STABLE;
+		channelChanged = true;
 	}
 
 	std::ostringstream oss_addpid;
@@ -546,7 +547,7 @@ std::string satipConfig::getSetupData()
 
 	updatePidStatus();
 
-	data = oss_data.str();
+	std::string data = oss_data.str();
 	if (!data.empty())
 	{
 		if (data[0] == '&')
@@ -559,18 +560,19 @@ std::string satipConfig::getSetupData()
 	src=1&freq=10202&pol=v&msys=dvbs&sr=27500&fec=34&pids=0,16,25,104
 	*/
 
-	return data;
+	return { std::move(data), channelChanged };
 }
 
-std::string satipConfig::getPlayData()
+std::pair<std::string, bool> satipConfig::getPlayData()
 {
-	std::string data;
+	bool channelChanged = false;
 	std::ostringstream oss_data;
 
 	if (m_status == CONFIG_STATUS_CHANNEL_CHANGED)
 	{
 		oss_data << getTuningData();
 		m_status = CONFIG_STATUS_CHANNEL_STABLE;
+		channelChanged = true;
 	}
 
 	if (m_pid_status == CONFIG_STATUS_PID_CHANGED)
@@ -612,7 +614,7 @@ std::string satipConfig::getPlayData()
 		updatePidStatus();
 	}
 
-	data = oss_data.str();
+	std::string data = oss_data.str();
 	if (!data.empty())
 	{
 		if (data[0] == '&')
@@ -625,7 +627,7 @@ std::string satipConfig::getPlayData()
 	?src=1&freq=11538&pol=v&ro=0.35&msys=dvbs&mtype=qpsk&plts=off&sr=22000&fec=56&pids=0,611,621,631
 	*/
 
-	return data;
+	return { std::move(data), channelChanged };
 }
 
 

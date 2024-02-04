@@ -96,6 +96,7 @@ private:
 	int m_rtsp_timeout;
 	int m_rtsp_cseq;
 	bool m_wait_response;
+	bool m_channel_changed;
 	
 	void resetConnect();
 	int connectToServer();

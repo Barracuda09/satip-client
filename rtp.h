@@ -42,7 +42,7 @@ class satipRTP
 	int m_signalStrength;
 	int m_signalQuality;
 
-	void parseRtcpAppPayload(char *buffer);
+	void parseRtcpAppPayload(const char* buffer);
 	void rtcpData(unsigned char* buffer, int rx);
 	void* rtpDump();
 	static void *thread_wrapper(void *ptr);

@@ -112,7 +112,7 @@ int satipRTP::openRTP()
 		inaddr.sin_port = htons(rtp_port);
 
 		/* rtp bind */
-		if (bind(rtp_sock, (struct sockaddr *) &inaddr, sizeof(inaddr)) < 0)
+		if (bind(rtp_sock, reinterpret_cast<struct sockaddr*>(&inaddr), sizeof(inaddr)) < 0)
 		{
 			close(rtp_sock);
 			close(rtcp_sock);
@@ -136,7 +136,7 @@ int satipRTP::openRTP()
 		inaddr.sin_port = htons(rtcp_port);
 
 		/* rtcp bind */
-		if (bind(rtcp_sock, (struct sockaddr *) &inaddr, sizeof(inaddr)) < 0)
+		if (bind(rtcp_sock, reinterpret_cast<struct sockaddr*>(&inaddr), sizeof(inaddr)) < 0)
 		{
 			close(rtp_sock);
 			close(rtcp_sock);
@@ -157,7 +157,7 @@ int satipRTP::openRTP()
 	return 0;
 }
 
-void satipRTP::parseRtcpAppPayload(char *buffer)
+void satipRTP::parseRtcpAppPayload(const char* buffer)
 {
 	/*
 		APP Packet String Payload Format:
@@ -173,16 +173,18 @@ void satipRTP::parseRtcpAppPayload(char *buffer)
 
 	unset();
 
-	char *strp = strstr(buffer, ";tuner=");
+	const char* strp = strstr(buffer, ";tuner=");
 	if (strp)
 	{
 		static int rateLimit = 0;
-		int level, lock, quality;
+		int level = 0;
+		int lock = 0;
+		int quality = 0;
 		strp = strstr(strp, ",");
 		sscanf(strp, ",%d,%d,%d,%*s", &level, &lock, &quality);
 
 		m_signalStrength = (level >= 0) ? (level * 65535 / 255) : 0;
-		m_hasLock = !!lock;
+		m_hasLock = lock == 1;
 		m_signalQuality = (m_hasLock && (quality >= 0)) ? (quality * 65535 / 15) : 0;
 		++rateLimit;
 		if (rateLimit > 3) {
@@ -195,13 +197,11 @@ void satipRTP::parseRtcpAppPayload(char *buffer)
 void satipRTP::rtcpData(unsigned char* a_buffer, int a_size)
 {
 	int done = 0;
-	uint32_t *buffer = (uint32_t*) a_buffer;
+	uint32_t* buffer = reinterpret_cast<uint32_t*>(a_buffer);
 	uint32_t val;
 
 	int pt;
 	int length;
-
-	char* payload;
 
 	DEBUG(MSG_DATA,"RTCP DATA : %s\n", buffer);
 
@@ -224,17 +224,10 @@ void satipRTP::rtcpData(unsigned char* a_buffer, int a_size)
 						val >> 24 & 0x000000ff);
 
 					val = htonl(buffer[3]) & 0x0000ffff; // string_length
-					if (val > 0)
-					{
-						payload = (char*) malloc(val + 1);
-						if (payload)
-						{
-							memcpy(payload, (char*) &buffer[4], val);
-							payload[val] = 0;
-							DEBUG(MSG_DATA, "RTCP APP string Payload : %s\n", payload);
-							parseRtcpAppPayload(payload);
-							free(payload);
-						}
+					if (val > 0) {
+						const std::string payload(reinterpret_cast<char*>(&buffer[4]), val);
+						DEBUG(MSG_DATA, "RTCP APP string Payload : %s\n", payload.c_str());
+						parseRtcpAppPayload(payload.c_str());
 					}
 				}
 
@@ -377,7 +370,7 @@ void satipRTP::rtpTcpData(unsigned char *data, int size)
 
 void *satipRTP::thread_wrapper(void *ptr)
 {
-	return ((satipRTP*)ptr)->rtpDump();
+	return static_cast<satipRTP*>(ptr)->rtpDump();
 }
 
 void satipRTP::run()
@@ -398,9 +391,8 @@ void satipRTP::stop()
 	m_rtp_pseq = 0;
 	if (m_thread)
 	{
-		int status;
-		pthread_join(m_thread, (void **)&status);
-		DEBUG(MSG_MAIN,"RTP thread END : %d.\n", status);
+		pthread_join(m_thread, nullptr);
+		DEBUG(MSG_MAIN,"RTP thread END.\n");
 		m_thread = 0;
 	}
 }

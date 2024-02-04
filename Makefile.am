@@ -1,6 +1,6 @@
 bin_PROGRAMS = satipclient
 
-AM_CXXFLAGS = -std=c++17 -Werror=vla -Wall -Wextra -Winit-self -Wshadow  -Wswitch-default
+AM_CXXFLAGS = -std=c++17 -Werror=vla -Wall -Wextra -Winit-self -Wshadow -Wswitch-default -Wold-style-cast
 
 satipclient_SOURCES = \
 	log.cpp \
